@@ -411,7 +411,8 @@ def menu():
         print("4. Buscar medicamento (avançado)")
         print("5. Contar por classe")
         print("6. Remover medicamento")
-        print("7. Sair")
+        print("7. Importar medicamentos")
+        print("8. Sair")
 
         opcao = input("Escolha uma opção: ").strip()
 
@@ -441,6 +442,8 @@ def menu():
         elif opcao == '6':
             remover_medicamento()
         elif opcao == '7':
+            importar_medicamentos()
+        elif opcao == '8':
             print("Programa encerrado.")
             break
         else:
