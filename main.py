@@ -321,83 +321,37 @@ def remover_medicamento():
         print("Medicamento não encontrado.\n")
 
 
-def importar_medicamentos():
-    """Importa medicamentos de arquivos CSV e .py da pasta atual para medicamentos.csv."""
-    # Lista arquivos CSV e .py na pasta atual, ignorando o próprio arquivo principal.
-    arquivos_csv = []
-    arquivos_py = []
-    for nome_arquivo in os.listdir('.'):
-        if nome_arquivo.lower().endswith('.csv') and nome_arquivo != ARQUIVO_CSV:
-            arquivos_csv.append(nome_arquivo)
-        elif nome_arquivo.lower().endswith('.py') and nome_arquivo != __file__:
-            arquivos_py.append(nome_arquivo)
-
-    # Se não há arquivos relevantes, informa ao usuário e encerra a rotina.
-    if not arquivos_csv and not arquivos_py:
-        print("Nenhum arquivo CSV ou .py encontrado para importar na pasta atual.\n")
+def atualizar_estoque():
+    """Atualiza a quantidade em estoque de um medicamento."""
+    nome = input("Digite o nome do medicamento: ").strip().lower()
+    if not nome or not os.path.exists(ARQUIVO_CSV):
+        print("Medicamento não encontrado.\n")
         return
 
-    importados = 0
-    ignorados = 0
+    with open(ARQUIVO_CSV, 'r', encoding='utf-8', newline='') as f:
+        linhas = list(csv.reader(f))
 
-    # Processa arquivos CSV: lê conteúdo, identifica linhas de dados e as valida.
-    for nome_arquivo in arquivos_csv:
-        try:
-            with open(nome_arquivo, 'r', encoding='utf-8', newline='') as f:
-                reader = csv.reader(f)
-                linhas = list(reader)
-        except (FileNotFoundError, OSError, UnicodeDecodeError):
-            ignorados += 1
-            continue
+    encontrados = [linha for linha in linhas[1:]
+                   if len(linha) >= 3 and linha[0].strip().lower() == nome]
+    if not encontrados:
+        print("Medicamento não encontrado.\n")
+        return
 
-        if not linhas:
-            ignorados += 1
-            continue
+    try:
+        quantidade = int(input("Digite a nova quantidade em estoque: ").strip())
+        if quantidade < 0:
+            raise ValueError
+    except ValueError:
+        print("Quantidade inválida! Digite um número inteiro não negativo.\n")
+        return
 
-        # Se o cabeçalho for reconhecido como de medicamentos, ignora a linha de títulos.
-        dados = linhas[1:] if linhas and len(linhas[0]) >= 3 and (
-            linhas[0][0].strip().lower() in {'nome do medicamento', 'nome', 'medicamento'}
-            or linhas[0][1].strip().lower() in {'classe do medicamento', 'classe', 'categoria'}
-        ) else linhas
+    for linha in encontrados:
+        linha[2] = str(quantidade)
 
-        itens = []
-        for linha in dados:
-            if len(linha) < 3:
-                continue
+    with open(ARQUIVO_CSV, 'w', encoding='utf-8', newline='') as f:
+        csv.writer(f).writerows(linhas)
 
-            item = _normalizar_item(linha[:3])
-            if item:
-                itens.append(item)
-
-        importados += _importar_dados_para_csv(itens)
-
-    # Processa arquivos .py: analisa a árvore sintática em busca de listas de medicamentos.
-    for nome_arquivo in arquivos_py:
-        try:
-            with open(nome_arquivo, 'r', encoding='utf-8') as f:
-                codigo = f.read()
-            arvore = ast.parse(codigo, filename=nome_arquivo)
-        except (SyntaxError, ValueError, OSError, UnicodeDecodeError):
-            ignorados += 1
-            continue
-
-        itens = []
-        nomes_variaveis = {'medicamentos', 'lista_medicamentos', 'cadastro', 'cadastro_medicamentos'}
-
-        # Procura atribuições para variáveis conhecidas e tenta converter o valor em uma lista de itens.
-        for node in ast.walk(arvore):
-            if isinstance(node, ast.Assign):
-                for alvo in node.targets:
-                    if isinstance(alvo, ast.Name) and alvo.id.lower() in nomes_variaveis:
-                        itens.extend(_extrair_medicamentos_de_dados(ast.literal_eval(node.value)))
-
-        if not itens:
-            ignorados += 1
-            continue
-
-        importados += _importar_dados_para_csv(itens)
-
-    print(f"Importação concluída: {importados} medicamentos importados. {ignorados} arquivos ignorados.\n")
+    print("Estoque atualizado com sucesso.\n")
 
 
 def menu():
@@ -411,7 +365,7 @@ def menu():
         print("4. Buscar medicamento (avançado)")
         print("5. Contar por classe")
         print("6. Remover medicamento")
-        print("7. Importar medicamentos")
+        print("7. Atualizar estoque")
         print("8. Sair")
 
         opcao = input("Escolha uma opção: ").strip()
@@ -442,7 +396,7 @@ def menu():
         elif opcao == '6':
             remover_medicamento()
         elif opcao == '7':
-            importar_medicamentos()
+            atualizar_estoque()
         elif opcao == '8':
             print("Programa encerrado.")
             break
