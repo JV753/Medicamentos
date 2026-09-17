@@ -148,6 +148,20 @@ def adicionar_medicamento():
         print("Quantidade inválida! Digite um número inteiro.\n")
         return
 
+    # Evita cadastrar novamente o mesmo medicamento na mesma classe.
+    if os.path.exists(ARQUIVO_CSV):
+        with open(ARQUIVO_CSV, 'r', encoding='utf-8', newline='') as f:
+            registros = list(csv.reader(f))
+        duplicado = any(
+            len(linha) >= 2
+            and linha[0].strip().lower() == nome.lower()
+            and linha[1].strip().lower() == classe.lower()
+            for linha in registros[1:]
+        )
+        if duplicado:
+            print("Esse medicamento já está cadastrado nessa classe!\n")
+            return
+
     # Grava a linha no CSV em formato padronizado [nome, classe, quantidade].
     with open(ARQUIVO_CSV, 'a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
